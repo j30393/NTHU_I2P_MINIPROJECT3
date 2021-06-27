@@ -107,8 +107,25 @@ private:
         }
     }
 public:
+    OthelloBoard(const OthelloBoard& input) {
+        board = input.board;
+        next_valid_spots = input.next_valid_spots;
+        disc_count = input.disc_count;
+        cur_player = input.cur_player;
+        done = input.done;
+        winner = input.winner;
+    }
     OthelloBoard() {
         reset();
+    }
+    OthelloBoard(const std::vector<Point>&input_valid_point , \
+    const std::array<std::array<int, SIZE>, SIZE>&input_board, int player):board(input_board),\
+    next_valid_spots(input_valid_point),cur_player(player){
+        disc_count[EMPTY] = 8*8-4;
+        disc_count[BLACK] = 2;
+        disc_count[WHITE] = 2;
+        done = false;
+        winner = -1;
     }
     void reset() {
         for (int i = 0; i < SIZE; i++) {
@@ -167,68 +184,6 @@ public:
             }
         }
         return true;
-    }
-    std::string encode_player(int state) {
-        if (state == BLACK) return "O";
-        if (state == WHITE) return "X";
-        return "Draw";
-    }
-    std::string encode_spot(int x, int y) {
-        if (is_spot_valid(Point(x, y))) return ".";
-        if (board[x][y] == BLACK) return "O";
-        if (board[x][y] == WHITE) return "X";
-        return " ";
-    }
-    std::string encode_output(bool fail=false) {
-        int i, j;
-        std::stringstream ss;
-        ss << "Timestep #" << (8*8-4-disc_count[EMPTY]+1) << "\n";
-        ss << "O: " << disc_count[BLACK] << "; X: " << disc_count[WHITE] << "\n";
-        if (fail) {
-            ss << "Winner is " << encode_player(winner) << " (Opponent performed invalid move)\n";
-        } else if (next_valid_spots.size() > 0) {
-            ss << encode_player(cur_player) << "'s turn\n";
-        } else {
-            ss << "Winner is " << encode_player(winner) << "\n";
-        }
-        ss << "+---------------+\n";
-        for (i = 0; i < SIZE; i++) {
-            ss << "|";
-            for (j = 0; j < SIZE-1; j++) {
-                ss << encode_spot(i, j) << " ";
-            }
-            ss << encode_spot(i, j) << "|\n";
-        }
-        ss << "+---------------+\n";
-        ss << next_valid_spots.size() << " valid moves: {";
-        if (next_valid_spots.size() > 0) {
-            Point p = next_valid_spots[0];
-            ss << "(" << p.x << "," << p.y << ")";
-        }
-        for (size_t i = 1; i < next_valid_spots.size(); i++) {
-            Point p = next_valid_spots[i];
-            ss << ", (" << p.x << "," << p.y << ")";
-        }
-        ss << "}\n";
-        ss << "=================\n";
-        return ss.str();
-    }
-    std::string encode_state() {
-        int i, j;
-        std::stringstream ss;
-        ss << cur_player << "\n";
-        for (i = 0; i < SIZE; i++) {
-            for (j = 0; j < SIZE-1; j++) {
-                ss << board[i][j] << " ";
-            }
-            ss << board[i][j] << "\n";
-        }
-        ss << next_valid_spots.size() << "\n";
-        for (size_t i = 0; i < next_valid_spots.size(); i++) {
-            Point p = next_valid_spots[i];
-            ss << p.x << " " << p.y << "\n";
-        }
-        return ss.str();
     }
 };
 
