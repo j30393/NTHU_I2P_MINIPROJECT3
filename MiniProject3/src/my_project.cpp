@@ -10,12 +10,15 @@
 
 using namespace std;
 
-struct Point {
+class Point {
+public:
     int x, y;
 	Point() : Point(0, 0) {}
 	Point(int x, int y) : x(x), y(y) {}
 	bool operator==(const Point& rhs) const {
-		return x == rhs.x && y == rhs.y;
+		x = rhs.x;
+        y = rhs.y;
+        return *this;
 	}
 	bool operator!=(const Point& rhs) const {
 		return !operator==(rhs);
@@ -28,8 +31,14 @@ struct Point {
 	}
 };
 
+Point& Point::operator=(const Point&rhs){
+    this->x = rhs.x;
+    this->y = rhs.y;
+    return *this;
+}
+
 class OthelloBoard {
-public:
+public: 
     enum SPOT_STATE {
         EMPTY = 0,
         BLACK = 1,
@@ -47,6 +56,8 @@ public:
     int cur_player;
     bool done;
     int winner;
+    int heuristic;
+    Point played_disc;
 private:
     int get_next_player(int player) const {
         return 3 - player;
@@ -114,6 +125,7 @@ public:
         cur_player = input.cur_player;
         done = input.done;
         winner = input.winner;
+        played_disc = input.played_disc;
     }
     OthelloBoard() {
         reset();
@@ -121,9 +133,8 @@ public:
     OthelloBoard(const std::vector<Point>&input_valid_point , \
     const std::array<std::array<int, SIZE>, SIZE>&input_board, int player):board(input_board),\
     next_valid_spots(input_valid_point),cur_player(player){
-        disc_count[EMPTY] = 8*8-4;
-        disc_count[BLACK] = 2;
-        disc_count[WHITE] = 2;
+        count_disc();
+        heuristic = find_heuristic();
         done = false;
         winner = -1;
     }
@@ -185,6 +196,19 @@ public:
         }
         return true;
     }
+    void count_disc(){
+        for(int i=0;i<3;i++){
+            disc_count[i] = 0;
+        }
+        for(int i=0;i<SIZE;i++){
+            for(int j=0;j<SIZE;j++){
+                disc_count[board[i][j]]++;
+            }
+        }
+    }
+    int find_heuristic(){
+        return disc_count[cur_player] - disc_count[3-cur_player];
+    }
 };
 
 int player;
@@ -210,15 +234,39 @@ void read_valid_spots(std::ifstream& fin) {
         next_valid_spots.push_back({x, y});
     }
 }
+OthelloBoard update(const OthelloBoard& in,Point place){
+    OthelloBoard create(in);
+    bool useless = create.put_disc(place);
+    create.played_disc = place;
+    create.find_heuristic();
+    return create;
+}
 
+OthelloBoard search(const OthelloBoard& board , int depth){
+    if(board.done || depth == 0){
+        for(int i=0;i<SIZE;i++){
+            for(int j=0;j<SIZE;j++){
+                cout << board.board[i][j] << " ";
+            }
+            cout << endl;
+        }
+        return board;
+    }
+    int k = depth;
+    k--;
+    for(auto it:board.next_valid_spots){
+        cout << it.x << " " << it.y << endl;
+        search(board,k);
+    }
+    board.played_disc = board.next_valid_spots[0];
+    return board;
+}
+// player 1 -> x  // player 2 -> o
 void write_valid_spot(std::ofstream& fout) {
-    int n_valid_spots = next_valid_spots.size();
-    srand(time(NULL));
+    OthelloBoard cur(next_valid_spots,board,player);
+    OthelloBoard move = search(cur,1);
     // Choose random spot. (Not random uniform here)
-    int index = (rand() % n_valid_spots);
-    Point p = next_valid_spots[index];
-    // Remember to flush the output to ensure the last action is written to file.
-    fout << p.x << " " << p.y << std::endl;
+    fout << move.played_disc.x << " " << move.played_disc.y << std::endl;
     fout.flush();
 }
 
