@@ -10,15 +10,12 @@
 
 using namespace std;
 
-class Point {
-public:
+struct Point {
     int x, y;
 	Point() : Point(0, 0) {}
 	Point(int x, int y) : x(x), y(y) {}
 	bool operator==(const Point& rhs) const {
-		x = rhs.x;
-        y = rhs.y;
-        return *this;
+		return x == rhs.x && y == rhs.y;
 	}
 	bool operator!=(const Point& rhs) const {
 		return !operator==(rhs);
@@ -31,11 +28,6 @@ public:
 	}
 };
 
-Point& Point::operator=(const Point&rhs){
-    this->x = rhs.x;
-    this->y = rhs.y;
-    return *this;
-}
 
 class OthelloBoard {
 public: 
@@ -118,14 +110,23 @@ private:
         }
     }
 public:
-    OthelloBoard(const OthelloBoard& input) {
-        board = input.board;
-        next_valid_spots = input.next_valid_spots;
-        disc_count = input.disc_count;
-        cur_player = input.cur_player;
-        done = input.done;
-        winner = input.winner;
-        played_disc = input.played_disc;
+    OthelloBoard(const OthelloBoard& rhs) {
+        for(int i=0;i<SIZE;i++){
+            for(int j=0;j<SIZE;j++){
+                board[i][j] = rhs.board[i][j];
+            }
+        }
+        for(long unsigned int i=0;i<rhs.next_valid_spots.size();i++){
+            next_valid_spots.push_back(rhs.next_valid_spots[i]);
+        }
+        for(int i=0;i<3;i++){
+            disc_count[i] = rhs.disc_count[i];
+        }
+        cur_player = rhs.cur_player;
+        done = rhs.done;
+        heuristic = rhs.heuristic;
+        winner = rhs.winner;
+        played_disc = rhs.played_disc;
     }
     OthelloBoard() {
         reset();
@@ -137,6 +138,7 @@ public:
         heuristic = find_heuristic();
         done = false;
         winner = -1;
+        played_disc = {-1,-1};
     }
     void reset() {
         for (int i = 0; i < SIZE; i++) {
@@ -209,7 +211,28 @@ public:
     int find_heuristic(){
         return disc_count[cur_player] - disc_count[3-cur_player];
     }
+    
+    OthelloBoard& operator=(const OthelloBoard& rhs){
+    for(int i=0;i<SIZE;i++){
+        for(int j=0;j<SIZE;j++){
+            board[i][j] = rhs.board[i][j];
+        }
+    }
+    for(long unsigned int i=0;i<rhs.next_valid_spots.size();i++){
+        next_valid_spots.push_back(rhs.next_valid_spots[i]);
+    }
+    for(int i=0;i<3;i++){
+        disc_count[i] = rhs.disc_count[i];
+    }
+    cur_player = rhs.cur_player;
+    done = rhs.done;
+    heuristic = rhs.heuristic;
+    winner = rhs.winner;
+    played_disc = rhs.played_disc;
+    return *this;
+    }
 };
+
 
 int player;
 const int SIZE = 8;
@@ -255,16 +278,18 @@ OthelloBoard search(const OthelloBoard& board , int depth){
     int k = depth;
     k--;
     for(auto it:board.next_valid_spots){
+        OthelloBoard next = board;
         cout << it.x << " " << it.y << endl;
-        search(board,k);
+        next = update(next,it);
+        search(next,k);
     }
-    board.played_disc = board.next_valid_spots[0];
     return board;
 }
 // player 1 -> x  // player 2 -> o
 void write_valid_spot(std::ofstream& fout) {
     OthelloBoard cur(next_valid_spots,board,player);
-    OthelloBoard move = search(cur,1);
+    OthelloBoard move = search(cur,2);
+    move.played_disc = move.next_valid_spots[0];
     // Choose random spot. (Not random uniform here)
     fout << move.played_disc.x << " " << move.played_disc.y << std::endl;
     fout.flush();
