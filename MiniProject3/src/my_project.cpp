@@ -218,8 +218,8 @@ public:
                 cout << board[i][j];
             }
             cout << endl;
-        }
-        for(int i=0;i<SIZE;i++){
+        }*/
+        /*for(int i=0;i<SIZE;i++){
             for(int j=0;j<SIZE;j++){
                 if(board[i][j]== 3-cur_player){
                     if(i==0 || j == 0 || i == SIZE-1 || j == SIZE-1){
@@ -314,26 +314,41 @@ OthelloBoard search(OthelloBoard& board , double& player_strategy , double& oppo
     int k = depth;
     k--;
     if(state == 1){
+        double val = -INF;
         for(auto it:board.next_valid_spots){
             OthelloBoard next = board;
             next.next_valid_spots.clear();
             next = update(next,it);
-            if(next.heuristic > player_strategy){
-                player_strategy = next.heuristic;
+            OthelloBoard value = search(next,player_strategy,opponent_strategy,k,0);
+            if(val < value.heuristic){
+                val= value.heuristic;
                 board.played_disc = it;
-                search(next,player_strategy,opponent_strategy,k,0);
+            }
+            if(val > player_strategy){
+                player_strategy = val;
+            }
+            if(player_strategy >= opponent_strategy){
+                break;
             }
         }
+        return board;
     }
     else if(state == 0){
+        double val = INF;
         for(auto it:board.next_valid_spots){
             OthelloBoard next = board;
             next.next_valid_spots.clear();
             next = update(next,it);
-            if(next.heuristic < opponent_strategy){
-                opponent_strategy = next.heuristic;
+            OthelloBoard value = search(next,player_strategy,opponent_strategy,k,1);
+            if(value.heuristic < val){
+                val= value.heuristic;
                 board.played_disc = it;
-                search(next,player_strategy,opponent_strategy,k,1);
+            }
+            if(val < opponent_strategy){
+                opponent_strategy = val;
+            }
+            if(player_strategy <= opponent_strategy){
+                break;
             }
         }
     }
@@ -344,7 +359,7 @@ void write_valid_spot(std::ofstream& fout) {
     OthelloBoard cur(next_valid_spots,board,player);
     double max = -INF ;
     double min = INF;
-    OthelloBoard final_desicion = search(cur,max,min,5,1);
+    OthelloBoard final_desicion = search(cur,max,min,7,1);
     cout << count << endl;
     fout << final_desicion.played_disc.x << " " << final_desicion.played_disc.y << std::endl;
     fout.flush();
