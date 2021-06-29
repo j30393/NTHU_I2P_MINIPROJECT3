@@ -12,7 +12,7 @@
 #define INF 0x3f3f3f3f
 using namespace std;
 int player;
-
+double best_choice = -INF;
 struct Point {
     int x, y;
 	Point() : Point(0, 0) {}
@@ -212,124 +212,143 @@ public:
             }
         }
     }
+    int stability(const OthelloBoard& input , Point dir_1 , Point dir_2 , Point place){
+        int ans = 0;
+        if(input.board[place.x][place.y] == 0) return 0;
+        if(input.board[place.x][place.y] == player){
+            for(int i=0;i<8;i++){
+                if(input.board[place.x+dir_1.x*i][place.y+dir_1.y*i]!=player){
+                    break;
+                }
+                else{
+                    ans++;
+                }
+                if(i == 7 && input.board[place.x+dir_1.x*i][place.y+dir_1.y*i]==player) ans -= 4;
+            }
+            for(int i=0;i<8;i++){
+                if(input.board[place.x+dir_2.x*i][place.y+dir_2.y*i]!=player){
+                    break;
+                }
+                else{
+                    ans++;
+                }
+                if(i == 7 && input.board[place.x+dir_2.x*i][place.y+dir_2.y*i]==player) ans -= 4;
+            }
+            return ans;
+        }
+        else{
+            for(int i=0;i<8;i++){
+                if(input.board[place.x+dir_1.x*i][place.y+dir_1.y*i]!= 3-player){
+                    break;
+                }
+                else{
+                    ans++;
+                }
+                if(i == 7 && input.board[place.x+dir_1.x*i][place.y+dir_1.y*i]== 3-player) ans -= 4;
+            }
+            for(int i=0;i<8;i++){
+                if(input.board[place.x+dir_2.x*i][place.y+dir_2.y*i]!= 3-player){
+                    break;
+                }
+                else{
+                    ans++;
+                }
+                if(i == 7 && input.board[place.x+dir_2.x*i][place.y+dir_2.y*i]== 3-player) ans -= 4;
+            }
+            return -ans;
+        }
+    }
     double find_heuristic(OthelloBoard& input){
         double heu = 0;
-        int my_tiles = 0, opp_tiles = 0,my_front_tiles = 0, opp_front_tiles = 0;
         double price[8][8] = {
-            20,-3,11, 8, 8,11,-3,20,
-            -3,-7,-4, 1, 1,-4,-7,-3,
-            11,-4, 2, 2, 2, 2,-4,11,
-             8, 1, 2,-3,-3,2, 1, 8,
-             8, 1, 2,-3,-3,2, 1, 8,
-            11,-4, 2, 2, 2, 2,-4,11,
-            -3,-7,-4, 1, 1,-4,-7,-3,
-            20,-3,11, 8, 8,11,-3,20,
+            65,-5, 11, 8, 8, 11, -5, 65,
+           -5,-30, 4, 1, 1, 4, -30, -5,
+            11, 4, 5, 2, 2, 5, 4, 11,
+            8, 1, 3, 1, 1, 3, 1, 8,
+            8, 1, 3, 1, 1, 3, 1, 8,
+            11, 4, 5, 2, 2, 5, 4, 11,
+           -5, -30, 4, 1, 1, 4, -30, -5,
+            65,-5, 11, 8, 8, 11, -5, 65,
         };
-        double p = 0, c = 0, l = 0, m = 0, f = 0, d = 0;
+        double board_value = 0, motive = 0;
+        double stable = 0;
         // p ->piece difference 
         for(int i=0;i<SIZE;i++){
             for(int j=0;j<SIZE;j++){
                 if(input.board[i][j] == player){
-                    d += price[i][j];
-                    my_tiles ++ ;
+                    board_value += price[i][j];
                 }
                 else if(input.board[i][j] == 3- player){
-                    d -= price[i][j];
-                    opp_tiles ++ ;
-                }
-                else{
-                    for(int k=0;k<8;k++){
-                        if(i+directions[k].x >= 0 && i+directions[k].x < 8 && j+directions[k].y >= 0 && j+directions[k].y < 8){
-                            if(input.board[i+directions[k].x][j+directions[k].y] == player ){
-                                my_front_tiles++;
-                                break;
-                            }
-                            else if(input.board[i+directions[k].x][j+directions[k].y] == 3-player){
-                                opp_front_tiles++; 
-                                break;
-                            }
-                        }
-                    }
+                    board_value -= price[i][j];
                 }
             }
         }
-        if(my_tiles > opp_tiles){
-            p = (my_tiles)*100/(my_tiles + opp_tiles);
-        }
-        else if(my_tiles < opp_tiles){
-            p = -(opp_tiles)*100/(my_tiles + opp_tiles);
-        }
-        else p = 0;
-        if(my_front_tiles > opp_front_tiles){
-            f = -(my_front_tiles)*100/(my_front_tiles + opp_front_tiles);
-        }
-        else if(my_front_tiles < opp_front_tiles){
-            f = (opp_front_tiles)*100/(my_front_tiles + opp_front_tiles);
-        }
-        else f = 0;
-        
-
-        // corner occupation
-        my_tiles = opp_tiles = 0;
-	    if(input.board[0][0] == player) my_tiles++;
-	    else if(input.board[0][0] == 3 - player) opp_tiles++;
-	    if(input.board[0][7] == player) my_tiles++;
-	    else if(input.board[0][7] == 3 - player) opp_tiles++;
-	    if(input.board[7][0] == player) my_tiles++;
-	    else if(input.board[7][0] == 3 - player) opp_tiles++;
-	    if(input.board[7][7] == player) my_tiles++;
-	    else if(input.board[7][7] == 3 - player) opp_tiles++;
-	    c = 25 * (my_tiles - opp_tiles);
-
-        // corner closeness
-	    my_tiles = opp_tiles = 0;
-	    if(input.board[0][0] == 0)   {
-		    if(input.board[0][1] == player) my_tiles++;
-		    else if(input.board[0][1] == 3 - player) opp_tiles++;
-		    if(input.board[1][1] == player) my_tiles++;
-		    else if(input.board[1][1] == 3 - player) opp_tiles++;
-		    if(input.board[1][0] == player) my_tiles++;
-		    else if(input.board[1][0] == 3 - player) opp_tiles++;
-	    }
-	    if(input.board[0][7] == 0)   {
-		    if(input.board[0][6] == player) my_tiles++;
-		    else if(input.board[0][6] == 3 - player) opp_tiles++;
-		    if(input.board[1][6] == player) my_tiles++;
-		    else if(input.board[1][6] == 3 - player) opp_tiles++;
-		    if(input.board[1][7] == player) my_tiles++;
-		    else if(input.board[1][7] == 3 - player) opp_tiles++;
-	    }
-	    if(input.board[7][0] == 0)   {
-		    if(input.board[7][1] == player) my_tiles++;
-		    else if(input.board[7][1] == 3 - player) opp_tiles++;
-		    if(input.board[6][1] == player) my_tiles++;
-		    else if(input.board[6][1] == 3 - player) opp_tiles++;
-		    if(input.board[6][0] == player) my_tiles++;
-		    else if(input.board[6][0] == 3 - player) opp_tiles++;
-	    }
-	    if(input.board[7][7] == 0)   {
-		    if(input.board[6][7] == player) my_tiles++;
-		    else if(input.board[6][7] == 3 - player) opp_tiles++;
-		    if(input.board[6][6] == player) my_tiles++;
-		    else if(input.board[6][6] == 3 - player) opp_tiles++;
-		    if(input.board[7][6] == player) my_tiles++;
-		    else if(input.board[7][6] == 3 - player) opp_tiles++;
-	    }
-	    l = -12.5 * (my_tiles - opp_tiles);  
-        // movable 
-        my_tiles = opp_tiles = 0;
         input.cur_player = get_next_player(input.cur_player);
         std::vector<Point> temp  = get_valid_spots();
-        opp_tiles = temp.size();
+        motive -= temp.size();
         input.cur_player = get_next_player(input.cur_player);
-        my_tiles = input.next_valid_spots.size();
-	    if(my_tiles > opp_tiles)
-		    m = (100.0 * my_tiles)/(my_tiles + opp_tiles);
-	    else if(my_tiles < opp_tiles)
-		    m = -(100.0 * opp_tiles)/(my_tiles + opp_tiles);
-	    else m = 0;
-        //cout << "m is " << m <<endl;
-        heu =   (10 * p) + (1000 * c) + (382.026 * l) + (78.922 * m) + (74.396 * f) + (75.658 * d);
+        motive = input.next_valid_spots.size();
+        Point a(1,0),b(0,1),c(0,0);
+        stable += stability(input,a,b,c);
+        Point a_1(-1,0),b_1(0,1),c_1(7,0);
+        stable += stability(input,a_1,b_1,c_1);
+        Point a_2(1,0),b_2(0,-1),c_2(0,7);
+        stable += stability(input,a_2,b_2,c_2);
+        Point a_3(-1,0),b_3(0,-1),c_3(7,7);
+        stable += stability(input,a_3,b_3,c_3);
+        int next_to_corner = 0;
+        if(input.board[0][0] == 0)   {
+		    if(input.board[0][1] == player) next_to_corner--;
+		    else if(input.board[0][1] == 3 - player) next_to_corner++;
+		    if(input.board[1][1] == player) next_to_corner--;
+		    else if(input.board[1][1] == 3 - player) next_to_corner++;
+		    if(input.board[1][0] == player) next_to_corner--;
+		    else if(input.board[1][0] == 3 - player) next_to_corner++;
+	    }
+	    if(input.board[0][7] == 0)   {
+		    if(input.board[0][6] == player) next_to_corner--;
+		    else if(input.board[0][6] == 3 - player) next_to_corner++;
+		    if(input.board[1][6] == player) next_to_corner--;
+		    else if(input.board[1][6] == 3 - player) next_to_corner++;
+		    if(input.board[1][7] == player) next_to_corner--;
+		    else if(input.board[1][7] == 3 - player) next_to_corner++;
+	    }
+	    if(input.board[7][0] == 0)   {
+		    if(input.board[7][1] == player) next_to_corner--;
+		    else if(input.board[7][1] == 3 - player) next_to_corner++;
+		    if(input.board[6][1] == player) next_to_corner--;
+		    else if(input.board[6][1] == 3 - player) next_to_corner++;
+		    if(input.board[6][0] == player) next_to_corner--;
+		    else if(input.board[6][0] == 3 - player) next_to_corner++;
+	    }
+	    if(input.board[7][7] == 0)   {
+		    if(input.board[6][7] == player) next_to_corner--;
+		    else if(input.board[6][7] == 3 - player) next_to_corner++;
+		    if(input.board[6][6] == player) next_to_corner--;
+		    else if(input.board[6][6] == 3 - player) next_to_corner++;
+		    if(input.board[7][6] == player) next_to_corner--;
+		    else if(input.board[7][6] == 3 - player) next_to_corner++;
+	    }
+        /*if(input.board[0][0] == 3- player || input.board[7][0] == 3- player ||
+        input.board[0][7] == 3- player || input.board[7][7] == 3- player ){
+            heu -= 5000;
+        }*/
+        if(disc_count[0] > 30){
+            if(player == 1)
+                heu += 1*board_value + 25*stable + 10*motive + 7.5*next_to_corner - 3.5*(disc_count[player]-disc_count[3-player]);
+            else
+                heu += 1*board_value + 25*stable + 10*motive + 7.5*next_to_corner - 3.3*(disc_count[player]-disc_count[3-player]);
+        }
+        if(disc_count[0] < 20){
+            if(player == 1)
+                heu += 1*board_value + 12.5*stable + 10*motive + 7.5*next_to_corner + 5*(disc_count[player]-disc_count[3-player]);
+            else{
+                heu += 1*board_value + 25*stable + 10*motive + 7.5*next_to_corner + 7.5*(disc_count[player]-disc_count[3-player]);
+            }
+        }
+
+        else
+            heu += 1*board_value + 12.5*stable + 10*motive + 7.5*next_to_corner ;
         return heu;
     }
     
@@ -390,6 +409,7 @@ OthelloBoard update(const OthelloBoard& in,Point place){
 // state 1 -> find max / state 0 ->find min
 double search(OthelloBoard& board , double& player_strategy , double& opponent_strategy , int depth , int state){
     if(board.done || depth == 0){
+        
         if(board.winner == 3 - player){
             return -INF + 100;
         }
@@ -407,9 +427,7 @@ double search(OthelloBoard& board , double& player_strategy , double& opponent_s
             next.put_disc(it);
             next.heuristic = next.find_heuristic(next);
             double value = search(next,player_strategy,opponent_strategy,k,0);
-            if(val < value){
-                val= value;
-            }
+            val = max(val,value);
             if(val > player_strategy){
                 player_strategy = val;
             }
@@ -426,9 +444,7 @@ double search(OthelloBoard& board , double& player_strategy , double& opponent_s
             next.put_disc(it);
             next.heuristic = next.find_heuristic(next);
             double value = search(next,player_strategy,opponent_strategy,k,1);
-            if(val > value){
-                val= value;
-            }
+            val = min(val,value);
             if(val < opponent_strategy){
                 opponent_strategy = val;
             }
@@ -453,7 +469,7 @@ void write_valid_spot(std::ofstream& fout) {
         new_one = cur;
         new_one.put_disc(it);
         new_one.heuristic = new_one.find_heuristic(new_one);
-        val = search(new_one,max,min,7,0);
+        val = search(new_one,max,min,5,0);
         cout << "current val " << val ;
         if(val > desicion){
             desicion = val;
