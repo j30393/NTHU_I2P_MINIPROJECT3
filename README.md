@@ -3,4 +3,4 @@
 - [x] Use human method and try to solve the optimal solution 
 - [ ] Use ML to find optomal soultion
 
-~but still can beat the five baseline~
+~but can still beat the five baseline~
